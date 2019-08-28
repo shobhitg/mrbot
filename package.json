@@ -1,0 +1,21 @@
+{
+  "name": "mrbot",
+  "version": "1.0.0",
+  "license": "MIT",
+  "dependencies": {
+    "@types/merge-images": "^1.1.0",
+    "@types/query-string": "^6.3.0",
+    "canvas": "^2.6.0",
+    "dotenv": "^8.1.0",
+    "jimp": "^0.6.4",
+    "merge-images": "^1.1.0",
+    "query-string": "^6.8.2",
+    "rxjs": "^6.3.3",
+    "string-to-stream": "^3.0.0",
+    "telegraf": "^3.32.0",
+    "tslint": "^5.19.0",
+    "tslint-config-prettier": "^1.18.0",
+    "typescript": "^3.5.3",
+    "xmlhttprequest": "^1.8.0"
+  }
+}
