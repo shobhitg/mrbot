@@ -163,6 +163,7 @@ const imageInfo$ = (options: FetchOptions) => {
       return ctx;
     }, ctx),
     map(() => {
+      // console.log(backgroundImages);
       backgroundImages.forEach(img => ctx.drawImage(img, 0, 0));
 
       return { options, base64: canvas.toDataURL("image/png") };
@@ -172,21 +173,22 @@ const imageInfo$ = (options: FetchOptions) => {
 
 export const allTilesInfo$ = realEarthMeta$.pipe(
   switchMap(res => {
-    res.times = res.times.slice(-90, -88);
+    res.times = res.times.slice(-1);
     return timer(0, 2000).pipe(
       take(res.times.length),
       mergeMap(index => {
         const options: FetchOptions = {
-          rows: 6,
-          cols: 5,
+          rows: 3,
+          cols: 4,
           query: {
-            x: 161,
-            y: 394,
+            x: 162,
+            y: 395,
             z: 10
           },
           time: res.times[index],
           opacity: 1
         };
+        // options.query.labels = 'outlines';
         options.query.products = `${PRODUCT_NAME}_${res.times[index]
           .split(".")
           .join("_")}`;
