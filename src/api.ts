@@ -1,11 +1,12 @@
-import { Canvas, Image } from 'canvas';
-import fs from 'fs';
-import { stringify } from 'querystring';
-import { range, Subject, timer } from 'rxjs';
-import { ajax } from 'rxjs/ajax';
-import { map, mergeMap, reduce, switchMap, take } from 'rxjs/operators';
+import { Canvas, Image } from "canvas";
+import fs from "fs";
+import { stringify } from "querystring";
+import { range, Subject, timer } from "rxjs";
+import { ajax } from "rxjs/ajax";
+import { map, mergeMap, reduce, switchMap, take } from "rxjs/operators";
 // @ts-ignore
-import { XMLHttpRequest } from 'xmlhttprequest';
+import { XMLHttpRequest } from "xmlhttprequest";
+import moment from "moment";
 
 function createXHR() {
   return new XMLHttpRequest();
@@ -165,35 +166,65 @@ const imageInfo$ = (options: FetchOptions) => {
     map(() => {
       // console.log(backgroundImages);
       backgroundImages.forEach(img => ctx.drawImage(img, 0, 0));
+      const drawStroked = (text: string, x: number, y: number) => {
+        ctx.font = "50px Monaco";
+        ctx.shadowColor = "rgba(255,255,255,0.6)";
+        ctx.shadowBlur = 9;
+        ctx.lineWidth = 4;
+        ctx.strokeText(text, x, y);
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = "black";
+        ctx.fillStyle = "white";
+        ctx.fillText(text, x, y);
+      };
 
+      const parts = options.time.split(".");
+      const partDate = parts[0];
+      const partTime = parts[1];
+      let partString = partDate.substr(0, 4) + "/";
+      partString += partDate.substr(4, 2) + "/";
+      partString += partDate.substr(6, 2) + " ";
+      partString += partTime.substr(0, 2) + ":";
+      partString += partTime.substr(2, 2) + ":";
+      partString += partTime.substr(4, 2);
+      const newDate = new Date(partString + " UTC");
+      const momDate = moment(newDate);
+      const dateTimeString = momDate.format("MM/DD/YY, hh:mm a");
+      drawStroked(dateTimeString, 330, 60);
       return { options, base64: canvas.toDataURL("image/png") };
     })
   );
 };
 
-export const allTilesInfo$ = realEarthMeta$.pipe(
-  switchMap(res => {
-    res.times = res.times.slice(-1);
-    return timer(0, 2000).pipe(
-      take(res.times.length),
-      mergeMap(index => {
-        const options: FetchOptions = {
-          rows: 3,
-          cols: 4,
-          query: {
-            x: 162,
-            y: 395,
-            z: 10
-          },
-          time: res.times[index],
-          opacity: 1
-        };
-        // options.query.labels = 'outlines';
-        options.query.products = `${PRODUCT_NAME}_${res.times[index]
-          .split(".")
-          .join("_")}`;
-        return imageInfo$(options);
-      })
-    );
-  })
-);
+export const allTilesInfo$ = (animate: boolean) =>
+  realEarthMeta$.pipe(
+    switchMap(res => {
+      res.times = res.times.slice(animate ? -24 : -1).filter(time => {
+          const fileName = `${PRODUCT_NAME}_${time.split(".").join("_")}`;
+          console.log(fileName);
+          return !fs.existsSync(`./images/${fileName}.webp`);
+        });
+        console.log(res.times);
+      return timer(0, 1000).pipe(
+        take(res.times.length),
+        mergeMap(index => {
+          const options: FetchOptions = {
+            rows: 3,
+            cols: 4,
+            query: {
+              x: 162,
+              y: 395,
+              z: 10
+            },
+            time: res.times[index],
+            opacity: 1
+          };
+          // options.query.labels = 'outlines';
+          options.query.products = `${PRODUCT_NAME}_${res.times[index]
+            .split(".")
+            .join("_")}`;
+          return imageInfo$(options);
+        })
+      );
+    })
+  );
