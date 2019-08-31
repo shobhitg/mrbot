@@ -190,7 +190,7 @@ const imageInfo$ = (options: FetchOptions) => {
       const newDate = new Date(partString + " UTC");
       const momDate = moment(newDate);
       const dateTimeString = momDate.format("MM/DD/YY, hh:mm a");
-      drawStroked(dateTimeString, 330, 60);
+      drawStroked(dateTimeString, 315, 60);
       return { options, base64: canvas.toDataURL("image/png") };
     })
   );
@@ -200,11 +200,14 @@ export const allTilesInfo$ = (animate: boolean) =>
   realEarthMeta$.pipe(
     switchMap(res => {
       res.times = res.times.slice(animate ? -24 : -1).filter(time => {
-          const fileName = `${PRODUCT_NAME}_${time.split(".").join("_")}`;
-          console.log(fileName);
-          return !fs.existsSync(`./images/${fileName}.webp`);
-        });
-        console.log(res.times);
+        const fileName = `${PRODUCT_NAME}_${time.split(".").join("_")}`;
+        return !fs.existsSync(`./images/${fileName}.webp`);
+      });
+      if (res.times.length) {
+        console.log("Fetching images for", res.times);
+      } else {
+        console.log("No images to fetch, all of them already exist.");
+      }
       return timer(0, 1000).pipe(
         take(res.times.length),
         mergeMap(index => {
