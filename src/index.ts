@@ -37,6 +37,10 @@ const response = (
 ) => {
   if (ctx.chat && ctx.from && ctx.message) {
     console.log(`${ctx.from.first_name} ${ctx.from.last_name} requested for ${ctx.message.text} at ${moment().format("MM/DD/YY, hh:mm:ss a")}`);
+    if (ctx.chat.type != 'private') {
+      ctx.reply('MR bot now only works in private mode, try sending me `/fog` or `/fogg` in a direct chat.');
+      return;
+    }
   }
   allTilesInfo$(animate).subscribe(
     nextFn,
