@@ -36,7 +36,7 @@ const response = (
   { animate }: { animate: boolean }
 ) => {
   if (ctx.chat && ctx.from && ctx.message) {
-    console.log(`${ctx.from.first_name} ${ctx.from.last_name} requested for ${ctx.message.text} at ${moment().format("MM/DD/YY, hh:mm a")}`);
+    console.log(`${ctx.from.first_name} ${ctx.from.last_name} requested for ${ctx.message.text} at ${moment().format("MM/DD/YY, hh:mm:ss a")}`);
   }
   allTilesInfo$(animate).subscribe(
     nextFn,
