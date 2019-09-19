@@ -1,12 +1,14 @@
 import { Canvas, Image } from "canvas";
-import fs from "fs";
+import { spawnSync } from "child_process";
+import fs, { unlinkSync } from "fs";
+import moment from "moment";
 import { stringify } from "querystring";
 import { range, Subject, timer } from "rxjs";
 import { ajax } from "rxjs/ajax";
 import { map, mergeMap, reduce, switchMap, take } from "rxjs/operators";
+import { ContextMessageUpdate } from "telegraf";
 // @ts-ignore
 import { XMLHttpRequest } from "xmlhttprequest";
-import moment from "moment";
 
 function createXHR() {
   return new XMLHttpRequest();
@@ -231,3 +233,108 @@ export const allTilesInfo$ = (animate: boolean) =>
       );
     })
   );
+
+export const saveImageToDisk = (val: {
+  options: FetchOptions;
+  base64: string;
+}) => {
+  // console.log(val.options.query);
+  const fileName: string = `./images/${PRODUCT_NAME}_${val.options.time
+    .split(".")
+    .join("_")}.png`;
+  fs.writeFileSync(
+    fileName,
+    val.base64.replace(/^data:image\/png;base64,/, ""),
+    "base64"
+  );
+  console.log(`Written ${fileName} successfully.`);
+  spawnSync(`cwebp`, [
+    "-q",
+    "50",
+    fileName,
+    "-o",
+    fileName.replace(".png", ".webp")
+  ]);
+  unlinkSync(fileName);
+};
+
+export const respondWithFogImage = (
+  ctx: ContextMessageUpdate,
+  { animate }: { animate: boolean }
+) => {
+  if (ctx.chat && ctx.from && ctx.message) {
+    console.log(
+      `${ctx.from.first_name} ${ctx.from.last_name} requested for ${
+        ctx.message.text
+      } via ${ctx.chat.type} message at ${moment().format(
+        "MM/DD/YY, hh:mm:ss a"
+      )}`
+    );
+    if (ctx.chat.type != "private") {
+      ctx.replyWithMarkdown(
+        "*MR bot* now only works in private mode, try sending me `/fog` or `/fogg` in a direct chat."
+      );
+      return;
+    }
+  }
+  allTilesInfo$(animate).subscribe(
+    saveImageToDisk,
+    err => console.log("Error", err),
+    () => {
+      const images = fs
+        .readdirSync("./images", { withFileTypes: true })
+        .filter(item => !item.isDirectory())
+        .filter(item => item.name.startsWith(PRODUCT_NAME))
+        .map(item => item.name);
+
+      if (!animate) {
+        ctx.replyWithPhoto({
+          source: fs.readFileSync(
+            "./images/" + images[images.length - 1].replace(".png", ".webp")
+          )
+        });
+        return;
+      }
+
+      const flatten_loop = (arr: Array<any>) => {
+        let stack: Array<string> = [];
+        let item;
+
+        while ((item = arr.shift()) !== undefined) {
+          if (Array.isArray(item)) {
+            arr = item.concat(arr);
+          } else {
+            stack.push(item);
+          }
+        }
+
+        return stack;
+      };
+      const args = flatten_loop(
+        images
+          .slice(-24)
+          .map(name => `./images/${name}`)
+          .map(image => ["-delay", "0", image])
+      );
+
+      spawnSync(`convert`, [
+        ...args,
+        "-delay",
+        "200",
+        images
+          .slice(-1)
+          .map(name => `./images/${name}`)
+          .join(" "),
+        "-loop",
+        "0",
+        "./images/fog-last-two-hours.gif"
+      ]);
+      // convert -delay 0 images/G* -delay 50 images/G17-ABI-CONUS-BAND02_20190830_165119.webp -loop 0 out.gif
+
+      ctx.replyWithDocument({
+        source: fs.readFileSync("./images/fog-last-two-hours.gif"),
+        filename: "fog-last-two-hours.gif"
+      });
+    }
+  );
+};
