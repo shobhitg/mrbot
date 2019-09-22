@@ -168,8 +168,13 @@ const imageInfo$ = (options: FetchOptions) => {
     map(() => {
       // console.log(backgroundImages);
       backgroundImages.forEach(img => ctx.drawImage(img, 0, 0));
-      const drawStroked = (text: string, x: number, y: number) => {
-        ctx.font = "50px Monaco";
+      const drawStroked = (
+        text: string,
+        x: number,
+        y: number,
+        font: string
+      ) => {
+        ctx.font = font;
         ctx.shadowColor = "rgba(255,255,255,0.6)";
         ctx.shadowBlur = 9;
         ctx.lineWidth = 4;
@@ -192,7 +197,8 @@ const imageInfo$ = (options: FetchOptions) => {
       const newDate = new Date(partString + " UTC");
       const momDate = moment(newDate);
       const dateTimeString = momDate.format("MM/DD/YY, hh:mm a");
-      drawStroked(dateTimeString, 315, 60);
+      drawStroked(dateTimeString, 315, 60, "50px Monaco");
+      drawStroked("/help for more commands", 25, 750, "32px Monaco");
       return { options, base64: canvas.toDataURL("image/png") };
     })
   );
@@ -262,21 +268,6 @@ export const respondWithFogImage = (
   ctx: ContextMessageUpdate,
   { animate }: { animate: boolean }
 ) => {
-  if (ctx.chat && ctx.from && ctx.message) {
-    console.log(
-      `${ctx.from.first_name} ${ctx.from.last_name} requested for ${
-        ctx.message.text
-      } via ${ctx.chat.type} message at ${moment().format(
-        "MM/DD/YY, hh:mm:ss a"
-      )}`
-    );
-    if (ctx.chat.type != "private") {
-      ctx.replyWithMarkdown(
-        "*MR bot* now only works in private mode, try sending me `/fog` or `/fogg` in a direct chat."
-      );
-      return;
-    }
-  }
   allTilesInfo$(animate).subscribe(
     saveImageToDisk,
     err => console.log("Error", err),
