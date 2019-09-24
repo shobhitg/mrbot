@@ -12,11 +12,11 @@ import moment = require("moment");
 require("dotenv").config();
 
 // Experimental: Hourly timer based caching for Fort Ord Profiler images
-timer(0, 60 * 1000 * 60)
-  .pipe(switchMap(() => fortOrdProfiler$))
-  .subscribe(saveFortOrdProfilerImageToDisk, err =>
-    console.log("Error saving Fort Ord image", err)
-  );
+// timer(0, 60 * 1000 * 60)
+//   .pipe(switchMap(() => fortOrdProfiler$))
+//   .subscribe(saveFortOrdProfilerImageToDisk, err =>
+//     console.log("Error saving Fort Ord image", err)
+//   );
 
 // 5 min timer based caching for fog images
 timer(0, 5 * 1000 * 60)

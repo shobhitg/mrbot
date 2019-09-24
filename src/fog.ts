@@ -3,13 +3,13 @@ import { spawnSync } from "child_process";
 import fs, { unlinkSync } from "fs";
 import moment from "moment";
 import { stringify } from "querystring";
-import { range, Subject, timer } from "rxjs";
+import { range, Subject, timer, zip } from "rxjs";
 import { ajax } from "rxjs/ajax";
-import { map, mergeMap, reduce, switchMap, take } from "rxjs/operators";
+import { map, mergeMap, reduce, switchMap, take, delay } from "rxjs/operators";
 import { ContextMessageUpdate } from "telegraf";
 // @ts-ignore
 import { XMLHttpRequest } from "xmlhttprequest";
-
+import http from "http";
 function createXHR() {
   return new XMLHttpRequest();
 }
@@ -79,8 +79,6 @@ export type TileInfo = {
   img?: Image;
 };
 
-console.log(`${REAL_EARTH_URL}/api/products?products=${PRODUCT_NAME}`);
-
 export const realEarthMeta$ = ajax({
   createXHR,
   url: `${REAL_EARTH_URL}/api/products?products=${PRODUCT_NAME}`
@@ -90,18 +88,54 @@ export const realEarthMeta$ = ajax({
     return remt;
   })
 );
-// .pipe(map((res) => res.times));
 
 export const tileImageWithInfo$ = (info: TileInfo) => {
   const sub: Subject<TileInfo> = new Subject();
   const tryFetch = () => {
+    // http.get(info.url, function(res) {
+    //   var buf = "";
+    //   res.setEncoding("binary");
+    //   res.on("data", function(chunk) {
+    //     console.log("adding chunk");
+    //     buf += chunk;
+    //   });
+    //   res.on("end", function() {
+    //     var img = new Image();
+    //     img.onload = function() {
+    //       const tileInfo: TileInfo = {
+    //         ...info,
+    //         img
+    //       };
+    //       sub.next(tileInfo);
+    //     };
+    //     img.onerror = function(err) {
+    //       console.error(
+    //         "Failed loading image. " + err + " Trying again in a few seconds..."
+    //       );
+    //       setTimeout(tryFetch, 5000);
+    //     };
+    //     img.src = Buffer.from(buf, "binary");
+    //   });
+    // });
+
     const img = new Image();
     img.onload = function() {
-      const tileInfo: TileInfo = {
-        ...info,
-        img
-      };
-      sub.next(tileInfo);
+      const canvasTemp: Canvas = new Canvas(256, 256);
+      const ctxTemp = canvasTemp.getContext("2d");
+      // @ts-ignore
+      ctxTemp.drawImage(img, 0, 0);
+
+      const base64Img = canvasTemp.toDataURL("image/png");
+      if (base64Img.length === 494) {
+        console.error("Got empty image. Trying again in a half a second...");
+        setTimeout(tryFetch, 500);
+      } else {
+        const tileInfo: TileInfo = {
+          ...info,
+          img
+        };
+        sub.next(tileInfo);
+      }
     };
     img.onerror = function(error) {
       console.error(
@@ -109,6 +143,7 @@ export const tileImageWithInfo$ = (info: TileInfo) => {
       );
       setTimeout(tryFetch, 5000);
     };
+    console.log(info.url);
     img.src = info.url;
   };
 
@@ -117,14 +152,18 @@ export const tileImageWithInfo$ = (info: TileInfo) => {
 };
 
 export const tilesInfo$ = (options: FetchOptions) => {
-  return range(0, options.rows).pipe(
+  return zip(range(0, options.rows), timer(0, 1000), (r, i) => r).pipe(
+    take(options.rows),
     mergeMap(r => {
       let row = options.query.y + r;
-      return range(0, options.cols).pipe(
+      return zip(range(0, options.cols), timer(0, 100), (c, i) => c).pipe(
+        take(options.cols),
         mergeMap(c => {
           let col = options.query.x + c;
           const query = { ...options.query, x: col, y: row };
-          const url = `${REAL_EARTH_URL}/api/image?${stringify(query)}`;
+          const url = `${REAL_EARTH_URL}/api/image?${stringify(
+            query
+          )}&client=RealEarth&device=Browser`;
           return tileImageWithInfo$({
             url,
             x: c * 256,
