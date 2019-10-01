@@ -5,7 +5,7 @@ import moment from "moment";
 import { stringify } from "querystring";
 import { range, Subject, timer, zip } from "rxjs";
 import { ajax } from "rxjs/ajax";
-import { map, mergeMap, reduce, switchMap, take, delay } from "rxjs/operators";
+import { map, reduce, switchMap, take, delay, concatMap } from "rxjs/operators";
 import { ContextMessageUpdate } from "telegraf";
 // @ts-ignore
 import { XMLHttpRequest } from "xmlhttprequest";
@@ -32,7 +32,7 @@ export type FetchOptions = {
 
 // http://realearth.ssec.wisc.edu/api/products?products=G17-ABI-CONUS-BAND02.100
 
-export const REAL_EARTH_URL = "http://realearth.ssec.wisc.edu";
+export const REAL_EARTH_URL = "http://goes.ssec.wisc.edu";
 export const PRODUCT_NAME = "G17-ABI-CONUS-BAND02";
 
 export interface RealEarthMetaType {
@@ -85,6 +85,7 @@ export const realEarthMeta$ = ajax({
 }).pipe(
   map(res => {
     const remt: RealEarthMetaType = res.response[0];
+    console.log("remt.times", remt);
     return remt;
   })
 );
@@ -109,7 +110,7 @@ export const tileImageWithInfo$ = (info: TileInfo) => {
     //       sub.next(tileInfo);
     //     };
     //     img.onerror = function(err) {
-    //       console.error(
+    //       console.info(
     //         "Failed loading image. " + err + " Trying again in a few seconds..."
     //       );
     //       setTimeout(tryFetch, 5000);
@@ -127,7 +128,7 @@ export const tileImageWithInfo$ = (info: TileInfo) => {
 
       const base64Img = canvasTemp.toDataURL("image/png");
       if (base64Img.length === 494) {
-        console.error("Got empty image. Trying again in a half a second...");
+        console.info("Got empty image. Trying again in a half a second...");
         setTimeout(tryFetch, 500);
       } else {
         const tileInfo: TileInfo = {
@@ -138,7 +139,7 @@ export const tileImageWithInfo$ = (info: TileInfo) => {
       }
     };
     img.onerror = function(error) {
-      console.error(
+      console.info(
         "Failed loading image. " + error + " Trying again in a few seconds..."
       );
       setTimeout(tryFetch, 5000);
@@ -152,13 +153,13 @@ export const tileImageWithInfo$ = (info: TileInfo) => {
 };
 
 export const tilesInfo$ = (options: FetchOptions) => {
-  return zip(range(0, options.rows), timer(0, 1000), (r, i) => r).pipe(
+  return zip(range(0, options.rows), timer(0, 500), (r, i) => r).pipe(
     take(options.rows),
-    mergeMap(r => {
+    concatMap(r => {
       let row = options.query.y + r;
       return zip(range(0, options.cols), timer(0, 100), (c, i) => c).pipe(
         take(options.cols),
-        mergeMap(c => {
+        concatMap(c => {
           let col = options.query.x + c;
           const query = { ...options.query, x: col, y: row };
           const url = `${REAL_EARTH_URL}/api/image?${stringify(
@@ -187,7 +188,7 @@ const imageInfo$ = (options: FetchOptions) => {
   ];
   const backgroundImages = backgrounds.map(source => {
     const img = new Image();
-    // img.onerror = () => console.error("Couldn't load background image");
+    // img.onerror = () => console.info("Couldn't load background image");
     // img.onload = () => {
     //   console.log("loaded background image");
     // };
@@ -246,8 +247,10 @@ const imageInfo$ = (options: FetchOptions) => {
 export const allTilesInfo$ = (animate: boolean) =>
   realEarthMeta$.pipe(
     switchMap(res => {
+      console.log("res.times:", res.times);
       res.times = res.times.slice(animate ? -24 : -1).filter(time => {
         const fileName = `${PRODUCT_NAME}_${time.split(".").join("_")}`;
+        console.log(fileName);
         return !fs.existsSync(`./images/${fileName}.webp`);
       });
       if (res.times.length) {
@@ -255,9 +258,9 @@ export const allTilesInfo$ = (animate: boolean) =>
       } else {
         console.log("No images to fetch, all of them already exist.");
       }
-      return timer(0, 1000).pipe(
+      return timer(0, 100).pipe(
         take(res.times.length),
-        mergeMap(index => {
+        concatMap(index => {
           const options: FetchOptions = {
             rows: 3,
             cols: 4,

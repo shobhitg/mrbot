@@ -7,6 +7,7 @@ import {
   saveFortOrdProfilerImageToDisk
 } from "./fort-ord-profiler";
 import { wunderground } from "./wunderground";
+import { tide } from "./tide";
 import moment = require("moment");
 
 require("dotenv").config();
@@ -19,7 +20,7 @@ require("dotenv").config();
 //   );
 
 // 5 min timer based caching for fog images
-timer(0, 5 * 1000 * 60)
+timer(0, 2 * 1000 * 60)
   .pipe(switchMap(() => allTilesInfo$(false)))
   .subscribe(saveImageToDisk, err =>
     console.log("Error saving fog image", err)
@@ -88,5 +89,11 @@ bot.command("wun", async (ctx: ContextMessageUpdate) => {
     return;
   }
   wunderground(ctx, {});
+});
+bot.command("tide", async (ctx: ContextMessageUpdate) => {
+  if (!preProcessCommand(ctx)) {
+    return;
+  }
+  tide(ctx, {});
 });
 bot.launch();
