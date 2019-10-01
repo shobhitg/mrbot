@@ -62,6 +62,8 @@ bot.help((ctx: ContextMessageUpdate) => {
 _Note: Animation response can take upto 1 minute._
 
 /wun for Weather underground information for KCADALYC1
+
+/tide for getting tide information for the day
 `);
 });
 
