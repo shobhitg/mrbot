@@ -30,10 +30,11 @@ export type FetchOptions = {
   opacity: number;
 };
 
-// http://realearth.ssec.wisc.edu/api/products?products=G17-ABI-CONUS-BAND02.100
+// http://realearth.ssec.wisc.edu/api/products?products=G17-ABI-CONUS-BAND02.100&cache=false
 
-export const REAL_EARTH_URL = "http://goes.ssec.wisc.edu";
+export const REAL_EARTH_URL = "http://realearth.ssec.wisc.edu";
 export const PRODUCT_NAME = "G17-ABI-CONUS-BAND02";
+export const REAL_EARTH_POSTFIX = ".100&cache=false";
 
 export interface RealEarthMetaType {
   id: string;
@@ -79,6 +80,7 @@ export type TileInfo = {
   img?: Image;
 };
 
+// console.log(`${REAL_EARTH_URL}/api/products?products=${PRODUCT_NAME}${REAL_EARTH_POSTFIX}`);
 export const realEarthMeta$ = ajax({
   createXHR,
   url: `${REAL_EARTH_URL}/api/products?products=${PRODUCT_NAME}`
@@ -139,9 +141,7 @@ export const tileImageWithInfo$ = (info: TileInfo) => {
       }
     };
     img.onerror = function(error) {
-      console.info(
-        "Failed loading image. " + error + " Trying again in a few seconds..."
-      );
+      console.info("Failed loading image. " + error + " Trying again in a few seconds...");
       setTimeout(tryFetch, 5000);
     };
     console.log(info.url);
@@ -153,18 +153,16 @@ export const tileImageWithInfo$ = (info: TileInfo) => {
 };
 
 export const tilesInfo$ = (options: FetchOptions) => {
-  return zip(range(0, options.rows), timer(0, 500), (r, i) => r).pipe(
+  return zip(range(0, options.rows), timer(0, 100), (r, i) => r).pipe(
     take(options.rows),
     concatMap(r => {
       let row = options.query.y + r;
-      return zip(range(0, options.cols), timer(0, 100), (c, i) => c).pipe(
+      return zip(range(0, options.cols), timer(0, 20), (c, i) => c).pipe(
         take(options.cols),
         concatMap(c => {
           let col = options.query.x + c;
           const query = { ...options.query, x: col, y: row };
-          const url = `${REAL_EARTH_URL}/api/image?${stringify(
-            query
-          )}&client=RealEarth&device=Browser`;
+          const url = `${REAL_EARTH_URL}/api/image?${stringify(query)}&client=RealEarth&device=Browser`;
           return tileImageWithInfo$({
             url,
             x: c * 256,
@@ -181,10 +179,8 @@ const imageInfo$ = (options: FetchOptions) => {
   const canvas: Canvas = new Canvas(options.cols * 256, options.rows * 256);
   const ctx = canvas.getContext("2d");
   const backgrounds = [
-    "data:image/png;base64," +
-      fs.readFileSync(`./images/labels-outlines.png`, { encoding: "base64" }),
-    "data:image/png;base64," +
-      fs.readFileSync(`./images/labels-google.png`, { encoding: "base64" })
+    "data:image/png;base64," + fs.readFileSync(`./images/labels-outlines.png`, { encoding: "base64" }),
+    "data:image/png;base64," + fs.readFileSync(`./images/labels-google.png`, { encoding: "base64" })
   ];
   const backgroundImages = backgrounds.map(source => {
     const img = new Image();
@@ -208,12 +204,7 @@ const imageInfo$ = (options: FetchOptions) => {
     map(() => {
       // console.log(backgroundImages);
       backgroundImages.forEach(img => ctx.drawImage(img, 0, 0));
-      const drawStroked = (
-        text: string,
-        x: number,
-        y: number,
-        font: string
-      ) => {
+      const drawStroked = (text: string, x: number, y: number, font: string) => {
         ctx.font = font;
         ctx.shadowColor = "rgba(255,255,255,0.6)";
         ctx.shadowBlur = 9;
@@ -258,7 +249,7 @@ export const allTilesInfo$ = (animate: boolean) =>
       } else {
         console.log("No images to fetch, all of them already exist.");
       }
-      return timer(0, 100).pipe(
+      return timer(0, 20).pipe(
         take(res.times.length),
         concatMap(index => {
           const options: FetchOptions = {
@@ -273,43 +264,23 @@ export const allTilesInfo$ = (animate: boolean) =>
             opacity: 1
           };
           // options.query.labels = 'outlines';
-          options.query.products = `${PRODUCT_NAME}_${res.times[index]
-            .split(".")
-            .join("_")}`;
+          options.query.products = `${PRODUCT_NAME}_${res.times[index].split(".").join("_")}`;
           return imageInfo$(options);
         })
       );
     })
   );
 
-export const saveImageToDisk = (val: {
-  options: FetchOptions;
-  base64: string;
-}) => {
+export const saveImageToDisk = (val: { options: FetchOptions; base64: string }) => {
   // console.log(val.options.query);
-  const fileName: string = `./images/${PRODUCT_NAME}_${val.options.time
-    .split(".")
-    .join("_")}.png`;
-  fs.writeFileSync(
-    fileName,
-    val.base64.replace(/^data:image\/png;base64,/, ""),
-    "base64"
-  );
+  const fileName: string = `./images/${PRODUCT_NAME}_${val.options.time.split(".").join("_")}.png`;
+  fs.writeFileSync(fileName, val.base64.replace(/^data:image\/png;base64,/, ""), "base64");
   console.log(`Written ${fileName} successfully.`);
-  spawnSync(`cwebp`, [
-    "-q",
-    "50",
-    fileName,
-    "-o",
-    fileName.replace(".png", ".webp")
-  ]);
+  spawnSync(`cwebp`, ["-q", "50", fileName, "-o", fileName.replace(".png", ".webp")]);
   unlinkSync(fileName);
 };
 
-export const respondWithFogImage = (
-  ctx: ContextMessageUpdate,
-  { animate }: { animate: boolean }
-) => {
+export const respondWithFogImage = (ctx: ContextMessageUpdate, { animate }: { animate: boolean }) => {
   allTilesInfo$(animate).subscribe(
     saveImageToDisk,
     err => console.log("Error", err),
@@ -322,9 +293,7 @@ export const respondWithFogImage = (
 
       if (!animate) {
         ctx.replyWithPhoto({
-          source: fs.readFileSync(
-            "./images/" + images[images.length - 1].replace(".png", ".webp")
-          )
+          source: fs.readFileSync("./images/" + images[images.length - 1].replace(".png", ".webp"))
         });
         return;
       }
