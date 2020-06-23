@@ -122,7 +122,7 @@ export const tileImageWithInfo$ = (info: TileInfo) => {
     // });
 
     const img = new Image();
-    img.onload = function() {
+    img.onload = function () {
       const canvasTemp: Canvas = new Canvas(256, 256);
       const ctxTemp = canvasTemp.getContext("2d");
       // @ts-ignore
@@ -140,7 +140,7 @@ export const tileImageWithInfo$ = (info: TileInfo) => {
         sub.next(tileInfo);
       }
     };
-    img.onerror = function(error) {
+    img.onerror = function (error) {
       console.info("Failed loading image. " + error + " Trying again in a few seconds...");
       setTimeout(tryFetch, 5000);
     };
@@ -225,8 +225,11 @@ const imageInfo$ = (options: FetchOptions) => {
       partString += partTime.substr(0, 2) + ":";
       partString += partTime.substr(2, 2) + ":";
       partString += partTime.substr(4, 2);
+      console.log(partString);
       const newDate = new Date(partString + " UTC");
-      const momDate = moment(newDate);
+      console.log(new Date(partString + " UTC"));
+      console.log(new Date(partString + " UTC+8"));
+      const momDate = moment(newDate).tz("America/Los_Angeles");
       const dateTimeString = momDate.format("MM/DD/YY, hh:mm a");
       drawStroked(dateTimeString, 315, 60, "50px Monaco");
       drawStroked("/help for more commands", 25, 750, "32px Monaco");
