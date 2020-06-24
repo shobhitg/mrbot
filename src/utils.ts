@@ -2,6 +2,7 @@ import { Image } from "canvas";
 import { Subject } from "rxjs";
 
 export const loadImage$ = (url: string) => {
+  console.log("fetching image:", url);
   var img = new Image();
   img.src = url;
   var o = new Subject<Image>();
