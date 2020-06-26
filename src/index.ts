@@ -74,6 +74,9 @@ bot.command("fogg", async (ctx: TelegrafContext) => {
   if (!preProcessCommand(ctx)) {
     return;
   }
+  ctx.replyWithMarkdown(
+    `*Note:* it can take a few mins to respond with fog animation, that is because we don't want to overwhelm the realearth server`
+  );
   respondWithFogImage(ctx, { animate: true });
 });
 // bot.command("win", async (ctx: TelegrafContext) => {

@@ -153,11 +153,11 @@ export const tileImageWithInfo$ = (info: TileInfo) => {
 };
 
 export const tilesInfo$ = (options: FetchOptions) => {
-  return zip(range(0, options.rows), timer(0, 100), (r, i) => r).pipe(
+  return zip(range(0, options.rows), timer(0, 50), (r, i) => r).pipe(
     take(options.rows),
     concatMap((r) => {
       let row = options.query.y + r;
-      return zip(range(0, options.cols), timer(0, 20), (c, i) => c).pipe(
+      return zip(range(0, options.cols), timer(0, 10), (c, i) => c).pipe(
         take(options.cols),
         concatMap((c) => {
           let col = options.query.x + c;
@@ -249,7 +249,7 @@ export const allTilesInfo$ = (animate: boolean) =>
       } else {
         console.log("No images to fetch, all of them already exist.");
       }
-      return timer(0, 20).pipe(
+      return timer(0, 10).pipe(
         take(res.times.length),
         concatMap((index) => {
           const options: FetchOptions = {
