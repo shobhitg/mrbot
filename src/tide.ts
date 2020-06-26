@@ -1,5 +1,5 @@
 import moment from "moment";
-import { ContextMessageUpdate } from "telegraf";
+import { TelegrafContext } from "telegraf/typings/context";
 
 const yyyymmdd = (date: Date) => {
   var yyyy = date.getFullYear().toString();
@@ -8,9 +8,9 @@ const yyyymmdd = (date: Date) => {
   return "" + yyyy + (mm[1] ? mm : "0" + mm[0]) + (dd[1] ? dd : "0" + dd[0]);
 };
 
-export const tide = async (ctx: ContextMessageUpdate, options: object) => {
+export const tide = async (ctx: TelegrafContext, options: object) => {
   ctx.replyWithPhoto({
     url: `https://www.tideschart.com/tides/en/Pacifica-United-States-tides-chart-ft.png?date=${yyyymmdd(new Date())}`,
-    filename: `Pacifica-tide-${moment().format("M-D-Y")}.gif`
+    filename: `Pacifica-tide-${moment().format("M-D-Y")}.gif`,
   });
 };
