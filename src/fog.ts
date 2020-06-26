@@ -6,10 +6,10 @@ import { stringify } from "querystring";
 import { range, Subject, timer, zip } from "rxjs";
 import { ajax } from "rxjs/ajax";
 import { map, reduce, switchMap, take, delay, concatMap } from "rxjs/operators";
-import { ContextMessageUpdate } from "telegraf";
 // @ts-ignore
 import { XMLHttpRequest } from "xmlhttprequest";
 import http from "http";
+import { TelegrafContext } from "telegraf/typings/context";
 function createXHR() {
   return new XMLHttpRequest();
 }
@@ -83,9 +83,9 @@ export type TileInfo = {
 // console.log(`${REAL_EARTH_URL}/api/products?products=${PRODUCT_NAME}${REAL_EARTH_POSTFIX}`);
 export const realEarthMeta$ = ajax({
   createXHR,
-  url: `${REAL_EARTH_URL}/api/products?products=${PRODUCT_NAME}`
+  url: `${REAL_EARTH_URL}/api/products?products=${PRODUCT_NAME}`,
 }).pipe(
-  map(res => {
+  map((res) => {
     const remt: RealEarthMetaType = res.response[0];
     console.log("remt.times", remt);
     return remt;
@@ -135,7 +135,7 @@ export const tileImageWithInfo$ = (info: TileInfo) => {
       } else {
         const tileInfo: TileInfo = {
           ...info,
-          img
+          img,
         };
         sub.next(tileInfo);
       }
@@ -155,11 +155,11 @@ export const tileImageWithInfo$ = (info: TileInfo) => {
 export const tilesInfo$ = (options: FetchOptions) => {
   return zip(range(0, options.rows), timer(0, 100), (r, i) => r).pipe(
     take(options.rows),
-    concatMap(r => {
+    concatMap((r) => {
       let row = options.query.y + r;
       return zip(range(0, options.cols), timer(0, 20), (c, i) => c).pipe(
         take(options.cols),
-        concatMap(c => {
+        concatMap((c) => {
           let col = options.query.x + c;
           const query = { ...options.query, x: col, y: row };
           const url = `${REAL_EARTH_URL}/api/image?${stringify(query)}&client=RealEarth&device=Browser`;
@@ -167,7 +167,7 @@ export const tilesInfo$ = (options: FetchOptions) => {
             url,
             x: c * 256,
             y: r * 256,
-            time: options.time
+            time: options.time,
           });
         })
       );
@@ -180,9 +180,9 @@ const imageInfo$ = (options: FetchOptions) => {
   const ctx = canvas.getContext("2d");
   const backgrounds = [
     "data:image/png;base64," + fs.readFileSync(`./images/labels-outlines.png`, { encoding: "base64" }),
-    "data:image/png;base64," + fs.readFileSync(`./images/labels-google.png`, { encoding: "base64" })
+    "data:image/png;base64," + fs.readFileSync(`./images/labels-google.png`, { encoding: "base64" }),
   ];
-  const backgroundImages = backgrounds.map(source => {
+  const backgroundImages = backgrounds.map((source) => {
     const img = new Image();
     // img.onerror = () => console.info("Couldn't load background image");
     // img.onload = () => {
@@ -203,7 +203,7 @@ const imageInfo$ = (options: FetchOptions) => {
     }, ctx),
     map(() => {
       // console.log(backgroundImages);
-      backgroundImages.forEach(img => ctx.drawImage(img, 0, 0));
+      backgroundImages.forEach((img) => ctx.drawImage(img, 0, 0));
       const drawStroked = (text: string, x: number, y: number, font: string) => {
         ctx.font = font;
         ctx.shadowColor = "rgba(255,255,255,0.6)";
@@ -225,11 +225,8 @@ const imageInfo$ = (options: FetchOptions) => {
       partString += partTime.substr(0, 2) + ":";
       partString += partTime.substr(2, 2) + ":";
       partString += partTime.substr(4, 2);
-      console.log(partString);
       const newDate = new Date(partString + " UTC");
-      console.log(new Date(partString + " UTC"));
-      console.log(new Date(partString + " UTC+8"));
-      const momDate = moment(newDate).tz("America/Los_Angeles");
+      const momDate = moment(newDate);
       const dateTimeString = momDate.format("MM/DD/YY, hh:mm a");
       drawStroked(dateTimeString, 315, 60, "50px Monaco");
       drawStroked("/help for more commands", 25, 750, "32px Monaco");
@@ -240,9 +237,9 @@ const imageInfo$ = (options: FetchOptions) => {
 
 export const allTilesInfo$ = (animate: boolean) =>
   realEarthMeta$.pipe(
-    switchMap(res => {
+    switchMap((res) => {
       console.log("res.times:", res.times);
-      res.times = res.times.slice(animate ? -24 : -1).filter(time => {
+      res.times = res.times.slice(animate ? -24 : -1).filter((time) => {
         const fileName = `${PRODUCT_NAME}_${time.split(".").join("_")}`;
         console.log(fileName);
         return !fs.existsSync(`./images/${fileName}.webp`);
@@ -254,17 +251,17 @@ export const allTilesInfo$ = (animate: boolean) =>
       }
       return timer(0, 20).pipe(
         take(res.times.length),
-        concatMap(index => {
+        concatMap((index) => {
           const options: FetchOptions = {
             rows: 3,
             cols: 4,
             query: {
               x: 162,
               y: 395,
-              z: 10
+              z: 10,
             },
             time: res.times[index],
-            opacity: 1
+            opacity: 1,
           };
           // options.query.labels = 'outlines';
           options.query.products = `${PRODUCT_NAME}_${res.times[index].split(".").join("_")}`;
@@ -283,20 +280,20 @@ export const saveImageToDisk = (val: { options: FetchOptions; base64: string }) 
   unlinkSync(fileName);
 };
 
-export const respondWithFogImage = (ctx: ContextMessageUpdate, { animate }: { animate: boolean }) => {
+export const respondWithFogImage = (ctx: TelegrafContext, { animate }: { animate: boolean }) => {
   allTilesInfo$(animate).subscribe(
     saveImageToDisk,
-    err => console.log("Error", err),
+    (err) => console.log("Error", err),
     () => {
       const images = fs
         .readdirSync("./images", { withFileTypes: true })
-        .filter(item => !item.isDirectory())
-        .filter(item => item.name.startsWith(PRODUCT_NAME))
-        .map(item => item.name);
+        .filter((item) => !item.isDirectory())
+        .filter((item) => item.name.startsWith(PRODUCT_NAME))
+        .map((item) => item.name);
 
       if (!animate) {
         ctx.replyWithPhoto({
-          source: fs.readFileSync("./images/" + images[images.length - 1].replace(".png", ".webp"))
+          source: fs.readFileSync("./images/" + images[images.length - 1].replace(".png", ".webp")),
         });
         return;
       }
@@ -318,8 +315,8 @@ export const respondWithFogImage = (ctx: ContextMessageUpdate, { animate }: { an
       const args = flatten_loop(
         images
           .slice(-24)
-          .map(name => `./images/${name}`)
-          .map(image => ["-delay", "0", image])
+          .map((name) => `./images/${name}`)
+          .map((image) => ["-delay", "0", image])
       );
 
       spawnSync(`convert`, [
@@ -328,17 +325,17 @@ export const respondWithFogImage = (ctx: ContextMessageUpdate, { animate }: { an
         "200",
         images
           .slice(-1)
-          .map(name => `./images/${name}`)
+          .map((name) => `./images/${name}`)
           .join(" "),
         "-loop",
         "0",
-        "./images/fog-last-two-hours.gif"
+        "./images/fog-last-two-hours.gif",
       ]);
       // convert -delay 0 images/G* -delay 50 images/G17-ABI-CONUS-BAND02_20190830_165119.webp -loop 0 out.gif
 
       ctx.replyWithDocument({
         source: fs.readFileSync("./images/fog-last-two-hours.gif"),
-        filename: "fog-last-two-hours.gif"
+        filename: "fog-last-two-hours.gif",
       });
     }
   );
