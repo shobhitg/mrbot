@@ -3,7 +3,7 @@ import { switchMap } from "rxjs/operators";
 import Telegraf from "telegraf";
 import { allTilesInfo$, respondWithFogImage, saveImageToDisk } from "./fog";
 import { fortOrdProfiler$, saveFortOrdProfilerImageToDisk } from "./fort-ord-profiler";
-import { wunderground } from "./wunderground";
+import { wunderground, Station } from "./wunderground";
 import { tide } from "./tide";
 import moment = require("moment");
 import { TelegrafContext } from "telegraf/typings/context";
@@ -55,7 +55,9 @@ bot.help((ctx: TelegrafContext) => {
 /fogg for last 2 hours fog animation 
 _Note: Animation response can take upto 1 minute._
 
-/wun for Weather underground information for KCADALYC1
+/kcadalyc1 for Weather underground information for kcadalyc1
+
+/kcadalyc37 for Weather underground information for kcadalyc37
 
 /tide for getting tide information for the day
 `);
@@ -83,12 +85,19 @@ bot.command("fogg", async (ctx: TelegrafContext) => {
 //   console.log("Recieved windy request");
 //   windy(ctx, {});
 // });
-bot.command("wun", async (ctx: TelegrafContext) => {
+bot.command("kcadalyc1", async (ctx: TelegrafContext) => {
   if (!preProcessCommand(ctx)) {
     return;
   }
-  wunderground(ctx, {});
+  wunderground(ctx, { station: Station.kcadalyc1 });
 });
+bot.command("kcadalyc37", async (ctx: TelegrafContext) => {
+  if (!preProcessCommand(ctx)) {
+    return;
+  }
+  wunderground(ctx, { station: Station.kcadalyc37 });
+});
+
 bot.command("tide", async (ctx: TelegrafContext) => {
   if (!preProcessCommand(ctx)) {
     return;
