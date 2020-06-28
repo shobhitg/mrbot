@@ -1,4 +1,4 @@
-// const windy = async (ctx: ContextMessageUpdate, options: object) => {
+// const windy = async (ctx: TelegrafContext, options: object) => {
 //   const browser = await puppeteer.launch();
 //   const page = await browser.newPage();
 //   await page.goto(
