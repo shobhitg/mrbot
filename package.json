@@ -15,7 +15,7 @@
     "dotenv": "^8.2.0",
     "jimp": "^0.9.5",
     "merge-images": "^1.2.0",
-    "moment": "^2.24.0",
+    "moment": "^2.29.4",
     "puppeteer": "^2.1.1",
     "puppeteer-core": "^2.1.1",
     "query-string": "^6.11.1",
